@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Single-user personal accounting app: one User row is created via /setup.
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  name           String?
+  // Estimated self-employment tax rate (%) used for the report's tax estimate.
+  taxRatePercent Float    @default(4)
+  createdAt      DateTime @default(now())
+
+  items     Item[]
+  expenses  Expense[]
+  documents Document[]
+}
+
+// IN_STOCK | SOLD
+model Item {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  category       String?
+  brand          String?
+  purchaseDate   DateTime
+  purchasePrice  Float
+  purchaseSource String?
+  notes          String?
+  status         String   @default("IN_STOCK")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sale        Sale?
+  attachments Attachment[]
+
+  @@index([userId, status])
+}
+
+model Sale {
+  id           String   @id @default(cuid())
+  itemId       String   @unique
+  saleDate     DateTime
+  salePrice    Float
+  saleLocation String?
+  buyerInfo    String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  item        Item         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime
+  category    String?
+  description String
+  amount      Float
+  createdAt   DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@index([userId, date])
+}
+
+model Document {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  category  String?
+  date      DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@index([userId])
+}
+
+// A stored file. Belongs to exactly one of item/sale/expense/document.
+model Attachment {
+  id         String   @id @default(cuid())
+  userId     String
+  fileName   String
+  storedName String
+  mimeType   String
+  size       Int
+  uploadedAt DateTime @default(now())
+
+  itemId     String?
+  item       Item?     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  saleId     String?
+  sale       Sale?     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  expenseId  String?
+  expense    Expense?  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
