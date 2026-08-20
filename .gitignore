@@ -15,6 +15,8 @@
 
 # local database and uploaded files
 /data/
+# built portable Windows package (large binaries — built on demand, not committed)
+/dist/
 # Prisma resolves sqlite paths relative to prisma/schema.prisma, so the
 # actual db file lives inside prisma/ — never commit it.
 /prisma/*.db
